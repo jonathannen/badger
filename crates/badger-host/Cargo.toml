@@ -1,0 +1,8 @@
+[package]
+name = "badger-host"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+badger-runtime = { path = "../badger-runtime" }

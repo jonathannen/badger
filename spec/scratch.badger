@@ -1,0 +1,108 @@
+// The Empty "Unit" Type - an empty tuple
+type Unit = ();
+
+// A Tuple of two values
+type ATuple = (i32, i32);
+
+// And Array of three values
+type AnArray = [3]i32;
+
+// An undimensioned slice (open Array)
+type UndimensionedSlice = []i32;
+
+// Enumerations
+enum Result<T,E> {
+  Ok(T);
+  Err(E);
+}
+
+// Structs
+struct Socket {
+  bytes_sent: u32;
+}
+
+// Function implementation
+implement Socket {
+  send(self: Self, data: []u8) -> Result<bool, bool> {
+  }
+}
+
+// Interfaces
+interface Stoppable {
+  stop(self: Self) -> Result<bool, bool>;
+}
+
+// Interface implementation
+implement Socket as Stoppable {
+  stop(self: Self) -> Result<bool, bool> {
+  }
+}
+
+// A lambda function with a block
+lambda_a = fn(data: []u8) -> Result<bool, bool> {
+  Result::Ok(true)
+};
+
+// A one-line lambda
+lambda_b = fn(data: []u8) -> Result<bool, bool> => Result::Ok(true);
+
+// The most basic loop definition
+loop_a = fn(i: u8) -> u8 {
+  i < 10 ? @recurse(i + 1) : i
+};
+
+// A single loop definition
+loop_b = fn(i: u8) -> u8 => i < 10 ? @recurse(i + 1) : i;
+
+// Map function in loop format
+map<In, Out> = fn(values: []In, apply: fn(i: u32, value: In) -> Out) -> []Out {
+  iter = fn(i: u32, acc: []Out) -> []Out =>
+    i < values.length
+      ? @recurse(i + 1, acc.append(apply(i, values[i])))
+      : acc;
+
+  iter(0, [])
+};
+
+// Pipelining
+result = values |> map()
+
+// Matchers
+a = match b {
+  true: 1;
+  _: 2;
+}
+
+// There is no void, default is () - Void is an alias for ()
+lambda_a = fn(data: []u8) -> Void {
+  //
+};
+result_a = lambda_a();
+
+// Side-effect - typically this would be function provided by the runtime
+read_file = fn(filename: String) -> Void !effect(io) {
+  //
+};
+
+// Non-data dependencies - note in the below a 
+// better solition is for print to return stdout.
+// But not possible for every case.
+hello = init.io.stdout.print("Hello");
+init.io.stdout.print_line("Hello World") !depend(hello);
+
+//
+maybe_value = maybe_function;
+result = match maybe_value {
+  Ok(result): process(result);
+  _: ();
+}
+
+//
+maybe_first = maybe_function;
+maybe_second = maybe_function;
+result = match (maybe_first, maybe_second) {
+  (Ok(first), Ok(second)): process(result);
+  _: ();
+}
+
+

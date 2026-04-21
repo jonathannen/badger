@@ -1,0 +1,18 @@
+pub @import("./string.badger");
+
+/// Option represents a value that is optionally available.
+///
+/// See: https://doc.rust-lang.org/std/option/index.html
+enum Option<T> {
+  None;
+  Some(T);
+}
+
+/// The Result of an operation that can either succeed (Ok)
+/// or not (Error).
+///
+/// See: https://doc.rust-lang.org/std/result/index.html
+enum Result<T,E> {
+  Ok(T);
+  Error(E);
+}

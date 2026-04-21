@@ -1,0 +1,5 @@
+pub interface Map<Key, Value> {
+  get(key: Key): Result<Value>;
+  set(key: Key, value: Value);
+  size(): usize;
+} 

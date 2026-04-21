@@ -1,0 +1,5 @@
+pub type String = []u8;
+
+pub implement String {
+  size(self: Self) -> usize;
+}

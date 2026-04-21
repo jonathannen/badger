@@ -1,0 +1,5 @@
+{ Init } = @import("std").process;
+
+pub main = fn(init: Init) -> () {
+  init.io.stdout.print_line("Hello World");
+}

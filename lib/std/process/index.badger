@@ -1,0 +1,10 @@
+{ Read, Write } = @import('std').io;
+
+interface Stdio extends Read, Write {}
+
+pub struct Init {
+  arguments: []String;
+  stdio: Stdio;
+}
+
+pub type Main = (init: Init) -> ();

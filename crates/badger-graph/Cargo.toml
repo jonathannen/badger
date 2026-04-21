@@ -1,0 +1,8 @@
+[package]
+name = "badger-graph"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+badger-cst = { path = "../badger-cst" }

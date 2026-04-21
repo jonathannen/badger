@@ -1,0 +1,10 @@
+pub struct Error {
+}
+
+pub interface Read {
+  read(self: Self) -> Result<[]u8, Error>;
+}
+
+pub interface Write {
+  write(self: Self, buffer: []u8): Result<usize, Error>;
+}

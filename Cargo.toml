@@ -1,0 +1,20 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/badger-cli",
+    "crates/badger-cst",
+    "crates/badger-graph",
+    "crates/badger-optimizer",
+    "crates/badger-runtime",
+    "crates/badger-interpreter",
+    "crates/badger-compiler",
+    "crates/badger-host",
+]
+
+[workspace.package]
+version = "0.0.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+
+[workspace.dependencies]
+clap = { version = "4", features = ["derive"] }

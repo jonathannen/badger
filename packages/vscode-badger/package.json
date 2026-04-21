@@ -1,0 +1,31 @@
+{
+  "name": "vscode-badger",
+  "displayName": "Badger",
+  "description": "Syntax highlighting for the Badger programming language",
+  "version": "0.0.1",
+  "publisher": "badger-lang",
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "icon": "icon.png",
+  "contributes": {
+    "languages": [
+      {
+        "id": "badger",
+        "aliases": ["Badger", "badger"],
+        "extensions": [".badger"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "badger",
+        "scopeName": "source.badger",
+        "path": "./syntaxes/badger.tmLanguage.json"
+      }
+    ]
+  }
+}

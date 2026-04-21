@@ -1,0 +1,18 @@
+[package]
+name = "badger-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "badger"
+path = "src/main.rs"
+
+[dependencies]
+badger-cst = { path = "../badger-cst" }
+badger-graph = { path = "../badger-graph" }
+badger-optimizer = { path = "../badger-optimizer" }
+badger-interpreter = { path = "../badger-interpreter" }
+badger-compiler = { path = "../badger-compiler" }
+badger-host = { path = "../badger-host" }
+clap = { workspace = true }

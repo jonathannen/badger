@@ -1,0 +1,21 @@
+# Rust / Cargo
+/target
+**/*.rs.bk
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+
+# Environment / local config
+.env
+.env.local
+*.local
+
+# Logs
+*.log
