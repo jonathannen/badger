@@ -1,5 +1,5 @@
-{ Init } = @import("std").process;
+{ Main } = @import("std").process;
 
-pub main = fn(init: Init) -> () {
-  init.io.stdout.print_line("Hello World");
+pub main: Main = fn(init) {
+  init.stdout.print_line("Hello World");
 }

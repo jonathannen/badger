@@ -59,13 +59,13 @@ Interface bounds are resolved through **monomorphization**. Generic code with an
 
 ```
 // Higher form (during lowering, generics still present):
-%r: bool = call @Stoppable::stop<Socket> %sock
+%r: bool = call @Stoppable.stop<Socket> %sock
 
 // Primary form (after monomorphization):
 %r: bool = call @stop_Socket %sock
 ```
 
-Capability interfaces are not special-cased. `init.io.stdout` has a concrete host-provided type (e.g. `HostStdout`) that implements the `Stdout` interface declared in the stdlib; calls through it monomorphize to `extern` intrinsics (SPEC §7.4) the same way any other interface call does.
+Capability interfaces are not special-cased. `init.stdout` has a concrete host-provided type (e.g. `HostStdout`) that implements the `Stdout` interface declared in the stdlib; calls through it monomorphize to `extern` intrinsics (SPEC §7.4) the same way any other interface call does.
 
 Dynamic dispatch (`dyn Trait`) is not part of the IR at this stage. _(open: when and how to add it.)_
 

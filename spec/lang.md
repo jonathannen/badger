@@ -19,7 +19,7 @@ Ideas Badger borrows from:
 
 This document describes the language as currently specified. Sections marked _(open)_ indicate decisions that have not yet been made; provisional sections are subject to change.
 
-For the formal syntax, see [grammar.md](grammar.md). For the intermediate representation (the dataflow graph a program lowers to), see [ir.md](ir.md).
+For the intermediate representation (the dataflow graph a program lowers to), see [ir.md](ir.md).
 
 ## 1. Core Model
 
@@ -60,12 +60,24 @@ A block whose contents are all `;`-terminated has no trailing expression and eva
 
 ```
 pub main = fn(init: Init) -> () {
-  init.io.stdout.print_line("Hello World");   // effectful, value discarded
+  init.stdout.print_line("Hello World");   // effectful, value discarded
   // no trailing expression — block evaluates to ()
-};
+}
 ```
 
-The canonical form for a value-producing block is no trailing `;`. Writing `;` after the tail is legal but means something different — it changes the block's value to `()`.
+The canonical form for a value-producing block is no trailing `;`. Writing `;` after the tail expression is legal but means something different — it changes the block's value to `()`.
+
+When a block body is itself the body of a top-level declaration or binding, a `;` after the closing `}` is optional declaration punctuation. It does not change the value of the block. These forms are equivalent:
+
+```
+pub main = fn(init: Init) -> () {
+  init.stdout.print_line("Hello World");
+}
+
+pub main = fn(init: Init) -> () {
+  init.stdout.print_line("Hello World");
+};
+```
 
 This is a deliberate consequence of the dataflow model (§1.2). A block is a subgraph whose output edge is its trailing expression; introducing `return` would mean that some _other_ node in the block becomes the output depending on runtime control flow, which is not expressible as a single static output edge. Keeping blocks expression-shaped preserves the property that the graph is fully determined by the source text.
 
@@ -112,7 +124,7 @@ greet = fn(name: String) -> String => "hello, " + name;
 
 ```
 x: i32 = 1;
-pub main: Main = fn(init) { ... };
+pub main: Main = fn(init) { ... }
 ```
 
 Type annotations are useful when the RHS's type is wider than what you want the binding to expose, when the RHS's type is not fully inferrable on its own (e.g. an untyped `fn` literal whose parameter types the annotation pins down — see §3.1), or to document intent at module boundaries.
@@ -136,6 +148,31 @@ _(open: renaming in destructuring (e.g. `{ Init as I }`); default / fallback for
 
 ## 2. Types
 
+### 2.0 Comments
+
+Comments are trivia: they do not affect evaluation, name resolution, or typing, but they are part of the source text and must be preserved by tools that round-trip source.
+
+**Line comments.** `//` starts a line comment that runs to the end of the line:
+
+```
+// this is a comment
+x = 1;
+```
+
+**Doc comments.** `///` starts a doc comment. A doc comment is line-oriented like `//`, but is intended to document the declaration that immediately follows it:
+
+```
+/// Option represents a value that is optionally available.
+pub enum Option<T> {
+  None;
+  Some(T);
+}
+```
+
+Multiple consecutive `///` lines belong to the same doc-comment block.
+
+_(open: block comments such as `/* ... */`; exact attachment rules for doc comments; whether doc comments are permitted on non-declaration forms.)_
+
 ### 2.1 Primitive and Built-in Types
 
 Badger's primitive types follow Rust's conventions. See the [Rust Reference — Types](https://doc.rust-lang.org/reference/types.html) for the canonical semantics; Badger inherits naming, widths, and bit-level behavior unless noted otherwise.
@@ -152,7 +189,9 @@ Initial set:
 
 `String` is _not_ a primitive — it is provided by the standard library on top of `[]u8`. String contents are assumed to be UTF-8 encoded.
 
-_(open: overflow behavior — wrap/trap/saturate; numeric literal inference defaults.)_
+**Integer literal inference.** An integer literal with no contextual type is `i32`. When the literal appears in a context that pins a numeric type (assignment to a typed binding, function argument, return position), the literal takes that type if it fits. A literal that does not fit its inferred type is a compile error.
+
+_(open: overflow behavior — wrap/trap/saturate; float literal inference defaults; explicit numeric suffixes (`3000_u32`).)_
 
 ### 2.2 Unit
 
@@ -187,13 +226,22 @@ type UndimensionedSlice = []i32;
 ### 2.5 Enumerations
 
 ```
-enum Result<T, E> {
+pub enum Result<T, E> {
   Ok(T);
-  Err(E);
+  Error(E);
 }
 ```
 
 Variants may carry payloads. Generic parameters are declared with angle brackets.
+
+**Variant access.** Variants are reached by `.` on the enum type name, the same operator used for module members (§8) and struct fields (§2.6):
+
+```
+ok  = Result.Ok(42);
+err = Result.Error("nope");
+```
+
+Badger does not distinguish a separate `::` path operator for type-level paths; `.` is the one namespace-access operator. In contexts where the enum is already in scope from a `match` or `use`-style binding, variants may be written unqualified (`Ok(42)`) — this follows the normal name-resolution rules, not a special form.
 
 ### 2.6 Structs
 
@@ -221,14 +269,14 @@ Block body:
 
 ```
 lambda_a = fn(data: []u8) -> Result<bool, bool> {
-  Result::Ok(true)
-};
+  Result.Ok(true)
+}
 ```
 
 Arrow (single-expression) body:
 
 ```
-lambda_b = fn(data: []u8) -> Result<bool, bool> => Result::Ok(true);
+lambda_b = fn(data: []u8) -> Result<bool, bool> => Result.Ok(true);
 ```
 
 **Block bodies vs. arrow bodies.** A block body yields its trailing expression, following the general block-value rules in §1.3. Arrow bodies have no trailing-`;` subtlety: `=> expr` always yields `expr`'s value, and there is no way to write an arrow body that yields `()` other than by making the expression itself be `()`.
@@ -239,48 +287,44 @@ The return type annotation is still required for a block-bodied `fn` without ext
 
 ```
 pub main: Main = fn(init) {
-  init.io.stdout.print_line("Hello World");
-};
+  init.stdout.print_line("Hello World");
+}
 ```
 
-Here `Main` pins `init`'s type and the return type, so `fn(init) { ... }` needs no annotations of its own. A `fn` literal with no external type context must declare its parameter types and (if it isn't obvious from the body) its return type.
+Here `Main` pins `init`'s type and the return type, so `fn(init) { ... }` needs no annotations of its own — and because the return type is pinned by context, the `-> ()` arrow is redundant and should be omitted. A `fn` literal with no external type context must declare its parameter types and (if it isn't obvious from the body) its return type.
 
 _(open: precise rules for when parameter types can be elided; whether return types are ever inferred from body in the absence of context; interaction with generics.)_
 
 ### 3.2 Function Types
 
-A function's _value_ is written with `fn`; a function's _type_ may be written either with `fn` or as a bare arrow. The two forms are equivalent:
+Function types are written with the `fn` keyword — the same shape as the value syntax (§3.1), minus the body:
 
 ```
-// fn form — mirrors the value syntax
-apply: fn(i: u32, value: In) -> Out
+// parameter to a higher-order function
+apply: fn(value: In, index: usize) -> Out
 
-// bare-arrow form — drops the `fn` keyword
-apply: (i: u32, value: In) -> Out
+// type aliases
+pub type MapApply<In, Out> = fn(value: In, index: usize) -> Out;
+pub type Main = fn(init: Init) -> ();
 ```
 
-The bare-arrow form is the idiomatic choice for standalone type aliases where the `fn` keyword would be redundant:
+There is no bare-arrow function-type form: `(a: A) -> B` as a _type_ is not a function type. Keeping a single spelling (`fn(...) -> T`) avoids two-syntaxes-for-one-thing and keeps function types distinguishable from tuple types at the first token.
 
-```
-pub type MapApply<In, Out> = (value: In, index: usize) -> Out;
-pub type Main = (init: Init) -> ();
-```
-
-Parameter names in a function _type_ are documentation only; they do not bind at call sites. A function type may omit parameter names entirely (e.g. `(In, usize) -> Out`).
+Parameter names in a function _type_ are documentation only; they do not bind at call sites. A function type may omit parameter names entirely (e.g. `fn(In, usize) -> Out`).
 
 _(open: whether named parameters in function types ever carry meaning beyond documentation — e.g. for keyword-style calls.)_
 
 ### 3.3 Generics
 
 ```
-map<In, Out> = fn(values: []In, apply: fn(i: u32, value: In) -> Out) -> []Out {
-  iter = fn(i: u32, acc: []Out) -> []Out =>
-    i < values.length
-      ? @recurse(i + 1, acc.append(apply(i, values[i])))
+map<In, Out> = fn(values: []In, apply: fn(value: In, index: usize) -> Out) -> []Out {
+  iter = fn(index: usize, acc: []Out) -> []Out =>
+    index < values.length
+      ? @recurse(index + 1, acc.append(apply(values[index], index)))
       : acc;
 
   iter(0, [])
-};
+}
 ```
 
 _(open: generic bounds / trait constraints.)_
@@ -292,7 +336,7 @@ Badger has no loop keyword. Iteration is expressed through self-recursion using 
 ```
 loop_a = fn(i: u8) -> u8 {
   i < 10 ? @recurse(i + 1) : i
-};
+}
 
 loop_b = fn(i: u8) -> u8 => i < 10 ? @recurse(i + 1) : i;
 ```
@@ -301,31 +345,11 @@ loop_b = fn(i: u8) -> u8 => i < 10 ? @recurse(i + 1) : i;
 
 _(open: whether `@recurse` is guaranteed tail-call-optimized. Future extension: labeled `@recurse` to target a named outer `fn` if the nearest-enclosing restriction proves limiting in practice.)_
 
-### 3.5 Trailing Lambdas _(provisional)_
+### 3.5 Method Chaining
 
-A call may be followed immediately by a parenthesised parameter list and an arrow-lambda body; this trailing form is sugar for passing that lambda as an extra trailing argument. The bare `(params) => body` form is only valid in this trailing position — it is not a standalone expression. Parameter types and the return type are inferred from the called function's signature.
+Nothing in the language prohibits chained method calls such as `response.status(200).set_header(...).write(...).end()`. Each call is an independent expression whose receiver is the value returned by the previous call; chaining composes with the dataflow rules of §1.2 and the capability-threading pattern of §7 without special treatment.
 
-```
-HttpServer.listen(3000) (request, response) => {
-  response
-    .status(200)
-    .setHeader("content-type", "text/html")
-    .write("<html><body><h1>Hello Web!</h1></body></html>")
-    .end()
-};
-```
-
-This is equivalent to passing the lambda as the final argument to `listen`:
-
-```
-HttpServer.listen(3000, fn(request, response) { ... });
-```
-
-The trailing-lambda form is intended for callback-shaped APIs (servers, scopes, resource handlers) where a single closure argument dominates the call site. It does not introduce new scoping or lifetime rules — the lambda is an ordinary function value bound to the trailing parameter.
-
-**Method chaining.** Nothing in the language prohibits chained method calls such as `response.status(200).setHeader(...).write(...).end()`. Each call is an independent expression whose receiver is the value returned by the previous call; chaining composes with the dataflow rules of §1.2 and the capability-threading pattern of §7 without special treatment.
-
-_(open: whether a call may carry more than one trailing lambda; whether the trailing lambda's parameter list may be omitted when empty (e.g. `foo() => expr`); interaction with pipelining (§6); whether the trailing form desugars exactly to an extra positional argument or to something richer.)_
+_(open: trailing-lambda sugar for callback-shaped APIs — deferred.)_
 
 ## 4. Methods and Interfaces
 
@@ -341,6 +365,20 @@ implement Socket {
 ```
 
 Methods take `self: Self` by value. Because values are immutable, a method that "modifies" state returns a new value of `Self`.
+
+**Static methods.** A method declared without `self: Self` as its first parameter is a _static method_ — it is called on the type itself rather than on an instance:
+
+```
+implement HttpServer {
+  listen(port: u16, handler: Handler) -> HttpServer !effect(io) {
+  }
+}
+
+// called on the type, not on an instance:
+HttpServer.listen(3000, my_handler);
+```
+
+The presence or absence of `self: Self` is the sole distinction between instance and static methods.
 
 ### 4.2 Interfaces
 
@@ -358,7 +396,9 @@ interface Iterator<Item> {
 }
 ```
 
-**Constraint-style generic parameters.** _(provisional)_ A generic parameter may be written as a _shape constraint_ rather than a bare name — the parameter stands for any type whose structure matches the given shape. Inside the interface body, the parameter refers to the matched type as a whole, and any names inside the shape are brought into scope as references to the corresponding parts:
+**Constraint-style generic parameters.** _(provisional)_ A generic parameter may be written as a _shape constraint_ rather than a bare name — the parameter stands for any type whose structure matches the given shape. Inside the interface body, the parameter refers to the matched type as a whole, and any names inside the shape are brought into scope as references to the corresponding parts.
+
+Syntactic distinction: a generic parameter is a bare parameter name iff the slot is a single identifier (`<Item>`, `<T, U>`); any other form in the slot (`<[]Type>`, `<Iterator<Type>>`) is a shape pattern. The CST distinguishes the two purely by the shape of the token(s) in the parameter position — no lookahead into the interface body is required.
 
 ```
 interface ArrayCollection<[]Type> {
@@ -458,8 +498,8 @@ The program entry point receives an `Init` value carrying all runtime capabiliti
 
 ```
 pub main = fn(init: Init) -> () {
-  init.io.stdout.print_line("Hello World");
-};
+  init.stdout.print_line("Hello World");
+}
 ```
 
 Capabilities are ordinary values. They are passed explicitly, not ambient.
@@ -471,18 +511,18 @@ A function's arrow may carry an effect annotation indicating the effects it perf
 ```
 read_file = fn(filename: String) -> Void !effect(io) {
   //
-};
+}
 ```
 
 _(open: full set of effects; inference vs. declaration; propagation to callers; relationship to capability passing.)_
 
-### 7.3 Explicit Dependencies
+### 7.3 Explicit Dependencies _(under consideration)_
 
-Effects on the same resource that do not carry a data dependency can be ordered with `!depend`:
+Effects on the same resource that do not carry a data dependency can — provisionally — be ordered with `!depend`:
 
 ```
-hello = init.io.stdout.print("Hello");
-init.io.stdout.print_line("Hello World") !depend(hello);
+hello = init.stdout.print("Hello");
+init.stdout.print_line("Hello World") !depend(hello);
 ```
 
 `!depend` adds a happens-before edge in the dataflow graph regardless of the dependency's value.
@@ -495,7 +535,9 @@ init.io.stdout.print_line("Hello World") !depend(hello);
 
 Every unnecessary `!depend` is lost parallelism.
 
-_(open: whether `!depend` accepts multiple arguments or stacks; failure semantics when the depended-on node fails; whether `!depend` is legal on pure expressions.)_
+**Why this is under consideration.** `!depend` is an escape hatch, and escape hatches in a dataflow language are load-bearing if they're used routinely — every `!depend` is a place the compiler cannot parallelize. The stronger position is that a well-designed effectful API should make `!depend` unnecessary: if two effects on the same resource need ordering, the API should thread the resource (mechanism 2) so the data-edge rule forces ordering automatically. Whether `!depend` stays in the language depends on whether real Badger code finds cases that capability threading genuinely cannot express, or whether it becomes a crutch for stdlib authors who didn't design the threading carefully.
+
+_(open: whether `!depend` is kept at all; if kept, whether it accepts multiple arguments or stacks; failure semantics when the depended-on node fails; whether `!depend` is legal on pure expressions.)_
 
 ### 7.4 Runtime-Provided Functions
 
@@ -509,15 +551,7 @@ interface Stdout {
 }
 ```
 
-For primitives that don't fit an interface shape — numeric intrinsics, allocation, low-level operators — use an `extern` binding:
-
-```
-extern add_i32 = fn(a: i32, b: i32) -> i32 @intrinsic("int.add");
-```
-
-An `extern` declares a signature with no body. The `@intrinsic(...)` attribute names the host-side implementation. `extern` declarations participate in type-checking and effect tracking exactly like ordinary functions; they simply have no Badger source for their body. An `extern` with an `!effect(...)` annotation is treated as an effectful op.
-
-_(open: exact attribute syntax; whether `extern` is `pub` by default; which primitives are surfaced as `extern` vs via capability interfaces; whether users outside the stdlib may declare `extern` bindings.)_
+Low-level primitives that do not fit an interface shape are currently a runtime/compiler concern, not part of the Badger source syntax specified here.
 
 ## 8. Modules _(provisional)_
 
@@ -552,7 +586,7 @@ Paths _without_ a leading `./` or `../` are package paths — they resolve again
 pub @import("./string.badger");
 ```
 
-The bindings exported by `./string.badger` become public members of `std.builtin`. Re-export is a top-level form; it does not bind a name locally (use a normal `{ ... } = @import(...)` destructuring binding for that). A `pub @import(...)` is a declaration, not an expression, and does not yield a value.
+The bindings exported by `./string.badger` become public members of `std.builtin`. Re-export is a top-level form; it does not bind a name locally (use a normal `{ ... } = @import(...)` destructuring binding for that). A `pub @import(...)` is a top-level declaration that yields the imported module as a value — the same value produced by a bare `@import(...)`; the `pub` prefix additionally re-exports its public bindings.
 
 _(open: module path resolution beyond relative-vs-package; whether package paths may contain subpath segments inside the string (`"net/http"`) or only top-level names accessed via `.`; visibility rules beyond `pub`; file-to-module mapping (e.g. `index.badger` as the module root); cyclic imports; versioning; vendored vs. stdlib modules; whether `@import` accepts identifiers in addition to string literals; whether re-export can be narrowed to a subset of the imported module's bindings.)_
 
@@ -575,8 +609,8 @@ A program's entry point is a public binding named `main`:
 
 ```
 pub main = fn(init: Init) -> () {
-  init.io.stdout.print_line("Hello World");
-};
+  init.stdout.print_line("Hello World");
+}
 ```
 
 `Init` and `Main` are defined by `std.process`:
@@ -585,16 +619,18 @@ pub main = fn(init: Init) -> () {
 // lib/std/process
 pub struct Init {
   arguments: []String;
-  stdio:     Stdio;
+  stdin:     Stdin;
+  stdout:    Stdout;
+  stderr:    Stderr;
   // ... further capability fields supplied by the runtime
 }
 
-pub type Main = (init: Init) -> ();
+pub type Main = fn(init: Init) -> ();
 ```
 
-`Init` is an ordinary struct whose fields are the capabilities the runtime provides for this program (arguments, standard I/O, and other host-supplied capabilities; see §7.1). `Main` is the expected type of the entry-point binding; annotating the binding as `pub main: Main = fn(init) { ... }` lets the `fn` literal omit its parameter and return-type annotations (§3.1).
+`Init` is an ordinary struct whose fields are the capabilities the runtime provides for this program (arguments, standard I/O, and other host-supplied capabilities; see §7.1). Capability fields sit directly on `Init` — there is no intermediate `io` grouping — so a program reads `init.stdout` rather than `init.io.stdout`. `Main` is the expected type of the entry-point binding; annotating the binding as `pub main: Main = fn(init) { ... }` lets the `fn` literal omit its parameter and return-type annotations (§3.1).
 
-_(open: the full set of capability fields on `Init` and how they are partitioned (e.g. `io.stdout` vs. a flat `stdio`); whether programs may declare a narrower `Init` to request only a subset of capabilities; how `Init` is supplied across targets (native, wasm, test).)_
+_(open: the full set of capability fields on `Init`; whether programs may declare a narrower `Init` to request only a subset of capabilities; how `Init` is supplied across targets (native, wasm, test).)_
 
 ## 10. Visibility
 
@@ -602,7 +638,7 @@ Top-level declarations default to module-private. Prefixing a declaration with `
 
 `pub` may appear on:
 
-- **Bindings**, including function values: `pub main = fn(init: Init) -> () { ... };`
+- **Bindings**, including function values: `pub main = fn(init: Init) -> () { ... }`
 - **Type aliases**: `pub type String = []u8;`
 - **Structs**: `pub struct Init { ... }`
 - **Enums**: `pub enum Option<T> { ... }`
@@ -626,7 +662,7 @@ A line beginning with `///` is a **doc comment**. Doc comments attach to the dec
 /// Option represents a value that is optionally available.
 ///
 /// See: https://doc.rust-lang.org/std/option/index.html
-enum Option<T> {
+pub enum Option<T> {
   None;
   Some(T);
 }

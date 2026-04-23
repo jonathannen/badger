@@ -106,7 +106,7 @@
           "name": "storage.type.function.badger"
         },
         {
-          "match": "\\b(enum|struct|interface|implement|type|extern)\\b",
+          "match": "\\b(enum|struct|interface|implement|type)\\b",
           "name": "storage.type.badger"
         },
         {
@@ -152,10 +152,9 @@
       ]
     },
     "function-definition": {
-      "match": "(?:\\b(extern)\\s+)?\\b([a-z_][A-Za-z0-9_]*)\\s*(?:<[^>]*>)?\\s*(?==\\s*fn\\b)",
+      "match": "\\b([a-z_][A-Za-z0-9_]*)\\s*(?:<[^>]*>)?\\s*(?==\\s*fn\\b)",
       "captures": {
-        "1": { "name": "storage.type.badger" },
-        "2": { "name": "entity.name.function.badger" }
+        "1": { "name": "entity.name.function.badger" }
       }
     },
     "function-call": {
@@ -177,10 +176,6 @@
         {
           "match": "\\|>",
           "name": "keyword.operator.pipeline.badger"
-        },
-        {
-          "match": "::",
-          "name": "keyword.operator.path.badger"
         },
         {
           "match": "(==|!=|<=|>=|<|>)",

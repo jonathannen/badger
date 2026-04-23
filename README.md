@@ -18,13 +18,13 @@ See [spec/lang.md](spec/lang.md) for the full language specification. [examples/
 - **No loops — `@recurse` only.** Iteration is tail-recursive self-reference inside a function; nearest-enclosing `fn` scope.
 - **Capability-passing for effects.** The program entry point receives an `Init` value; all IO and runtime access is threaded through it explicitly. Effects are also tracked in types (`!effect(io)`).
 - **Ordering.** Prefer data edges → capability threading (effectful functions return the capability) → `!depend` as an escape hatch for explicit happens-before.
-- **Runtime boundary.** Capability interfaces declared in `.badger`; the host crate provides implementations. Low-level primitives use `extern` with `@intrinsic(...)`.
+- **Runtime boundary.** Capability interfaces declared in `.badger`; the host crate provides implementations.
 
 ## Hello World
 
 ```
 pub main = fn(init: Init) -> () {
-  init.io.stdout.print_line("Hello World");
+  init.stdout.print_line("Hello World");
 };
 ```
 
@@ -35,7 +35,6 @@ pub main = fn(init: Init) -> () {
 - [crates/](crates/index.md) — Rust crates implementing the toolchain (parser, graph IR, optimizer, runtime, interpreter, compiler, host). See [crates/index.md](crates/index.md) for the full breakdown.
 - [spec/](spec/) — language specification and design docs.
   - [lang.md](spec/lang.md) — language specification.
-  - [grammar.md](spec/grammar.md) — formal grammar (W3C EBNF).
   - [ir.md](spec/ir.md) — intermediate representation (dataflow graph).
 
 ## Giants

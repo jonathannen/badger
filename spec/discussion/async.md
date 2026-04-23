@@ -11,17 +11,17 @@ Badger's execution model solves that problem a different way. A program is a dat
 Concretely, given:
 
 ```
-a = init.io.stdout.print("one");
-b = init.io.stdout.print("two");
-c = init.io.fs.read_file("config.toml");
+a = init.stdout.print("one");
+b = init.stdout.print("two");
+c = init.fs.read_file("config.toml");
 ```
 
-The three nodes have no data edges between them. The runtime may fire them in any order, and may fire them concurrently. If `read_file` blocks for 50ms, nothing about `a` or `b` is affected — they simply fire whenever their inputs (just `init.io.stdout` in both cases) are available. No `await` is needed because there's no caller waiting in the sequential sense.
+The three nodes have no data edges between them. The runtime may fire them in any order, and may fire them concurrently. If `read_file` blocks for 50ms, nothing about `a` or `b` is affected — they simply fire whenever their inputs (just `init.stdout` in both cases) are available. No `await` is needed because there's no caller waiting in the sequential sense.
 
 Where a data edge _does_ exist, the dependent node waits automatically:
 
 ```
-config = init.io.fs.read_file("config.toml");
+config = init.fs.read_file("config.toml");
 result = process(config);
 ```
 

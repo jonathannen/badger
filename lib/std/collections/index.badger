@@ -1,19 +1,19 @@
 pub @import("./map.badger");
 
 pub interface Iterator<Item> {
-  next(self: Self) -> Option<Item>; 
-} 
+  next(self: Self) -> Option<Item>;
+}
 
-pub type MapApply<In, Out> = (value: In, index: usize) -> Out;
-pub type FilterApply<In> = (value: In, index: usize) -> bool;
+pub type MapApply<In, Out> = fn(value: In, index: usize) -> Out;
+pub type FilterApply<In> = fn(value: In, index: usize) -> bool;
 
 pub interface ArrayCollection<[]Type> {
-  filter(self: Self, apply: FilterApply<In>) -> Self;
+  filter(self: Self, apply: FilterApply<Type>) -> Self;
   map<Out>(self: Self, apply: MapApply<Type, Out>) -> []Out;
 }
 
 pub interface IteratorCollection<Iterator<Type>> {
   collect(self: Self) -> []Type;
-  filter(self: Self, apply: FilterApply<In>) -> Iterator<Type>;
+  filter(self: Self, apply: FilterApply<Type>) -> Iterator<Type>;
   map<Out>(self: Self, apply: MapApply<Type, Out>) -> Iterator<Out>;
 }

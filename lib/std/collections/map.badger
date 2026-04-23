@@ -1,5 +1,5 @@
 pub interface Map<Key, Value> {
-  get(key: Key): Result<Value>;
-  set(key: Key, value: Value);
-  size(): usize;
-} 
+  get(self: Self, key: Key) -> Option<Value>;
+  set(self: Self, key: Key, value: Value) -> Self;
+  size(self: Self) -> usize;
+}

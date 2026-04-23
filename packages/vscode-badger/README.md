@@ -4,14 +4,14 @@ Syntax highlighting for the [Badger](../../spec/lang.md) programming language.
 
 ## Features
 
-- Keywords: `fn`, `enum`, `struct`, `interface`, `implement`, `extends`, `type`, `extern`, `match`, `pub`, `as`
-- `@`-forms: `@import`, `@recurse`, `@intrinsic`
+- Keywords: `fn`, `enum`, `struct`, `interface`, `implement`, `extends`, `type`, `match`, `pub`, `as`
+- `@`-forms: `@import`, `@recurse`
 - `!`-forms: `!effect`, `!depend`
 - Primitive types: `i8`–`i128`, `u8`–`u128`, `isize`, `usize`, `f32`, `f64`, `bool`, `char`
 - Stdlib types: `String`, `Option`, `Result`, `Void`, `Init`, `Main`
 - Doc comments (`///`) vs. line comments (`//`)
 - String, raw-string, char, and numeric literals (with type suffixes)
-- Operators: `=>`, `->`, `|>`, `::`, ternary `?:`, comparison, logical, arithmetic
+- Operators: `=>`, `->`, `|>`, ternary `?:`, comparison, logical, arithmetic
 - Identifier heuristics: PascalCase → type, lowercase before `(` → function call, lowercase before `= fn` → function definition
 
 ## Install locally

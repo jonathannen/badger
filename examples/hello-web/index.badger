@@ -1,12 +1,12 @@
-{ Init } = @import("std").process;
+{ Main } = @import("std").process;
 { HttpServer } = @import("net").http;
 
 pub main: Main = fn(init) {
-  HttpServer.listen(3000) (request, response) => {
+  HttpServer.listen(3000, fn(request, response) {
     response
       .status(200)
-      .setHeader("content-type", "text/html")
+      .set_header("content-type", "text/html")
       .write("<html><body><h1>Hello Web!</h1></body></html>")
       .end()
-  }
+  })
 }
